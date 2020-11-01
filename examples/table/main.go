@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"math/big"
 	"time"
 
 	"github.com/kolide/osquery-go"
@@ -38,28 +40,66 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating extension: %s\n", err)
 	}
-	server.RegisterPlugin(table.NewPlugin("example_table", ExampleColumns(), ExampleGenerate))
+
+	exampleTable, err := table.NewPlugin("example_table",
+		ExampleRow{},
+		table.GenerateRows(ExampleGenerate),
+		table.InsertRow(ExampleInsert),
+		table.UpdateRow(ExampleUpdate),
+	)
+	if err != nil {
+		log.Fatalf("Error creating table plugin: %s\n", err)
+	}
+
+	server.RegisterPlugin(exampleTable)
 	if err := server.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func ExampleColumns() []table.ColumnDefinition {
-	return []table.ColumnDefinition{
-		table.TextColumn("text"),
-		table.IntegerColumn("integer"),
-		table.BigIntColumn("big_int"),
-		table.DoubleColumn("double"),
-	}
+type ExampleRow struct {
+	ID      table.RowID
+	Text    string   `column:"text"`
+	Integer int      `column:"integer"`
+	BigInt  *big.Int `column:"big_int"`
+	Double  float64  `column:"double"`
 }
 
-func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]map[string]string, error) {
-	return []map[string]string{
-		{
-			"text":    "hello world",
-			"integer": "123",
-			"big_int": "-1234567890",
-			"double":  "3.14159",
+func ExampleGenerate(ctx context.Context, queryContext table.QueryContext) ([]table.RowDefinition, error) {
+	return []table.RowDefinition{
+		ExampleRow{
+			ID:      1010,
+			Text:    "hello world",
+			Integer: 123,
+			BigInt:  big.NewInt(1013010),
+			Double:  3.14159,
+		},
+		ExampleRow{
+			ID:      101010101,
+			Text:    "hello universe",
+			Integer: 123,
+			BigInt:  big.NewInt(1013010),
+			Double:  3.14159,
 		},
 	}, nil
+}
+
+func ExampleInsert(ctx context.Context, row table.RowDefinition) (table.RowID, error) {
+	rowValue, ok := row.(ExampleRow)
+	if !ok {
+		return 0, fmt.Errorf("you gave me a wrong row type")
+	}
+
+	fmt.Println("Inserting row", rowValue)
+	return 7, nil
+}
+
+func ExampleUpdate(ctx context.Context, rowID table.RowID, row table.RowDefinition) error {
+	rowValue, ok := row.(ExampleRow)
+	if !ok {
+		return fmt.Errorf("you gave me a wrong row type")
+	}
+
+	fmt.Println("Updating row", rowID, rowValue)
+	return nil
 }
