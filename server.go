@@ -25,7 +25,7 @@ type OsqueryPlugin interface {
 	Routes() osquery.ExtensionPluginResponse
 	// Ping implements a health check for the plugin. If the plugin is in a
 	// healthy state, StatusOK should be returned.
-	Ping() osquery.ExtensionStatus
+	Ping(ctx context.Context) osquery.ExtensionStatus
 	// Call requests the plugin to perform its defined behavior, returning
 	// a response containing the result.
 	Call(context.Context, osquery.ExtensionPluginRequest) osquery.ExtensionResponse
@@ -42,7 +42,7 @@ const defaultPingInterval = 5 * time.Second
 type ExtensionManagerServer struct {
 	name         string
 	sockPath     string
-	serverClient ExtensionManager
+	serverClient osquery.ExtensionManager
 	registry     map[string](map[string]OsqueryPlugin)
 	server       thrift.TServer
 	transport    thrift.TServerTransport
@@ -141,6 +141,7 @@ func (s *ExtensionManagerServer) Start() error {
 		registry := s.genRegistry()
 
 		stat, err := s.serverClient.RegisterExtension(
+			context.Background(),
 			&osquery.InternalExtensionInfo{
 				Name: s.name,
 			},
@@ -191,7 +192,7 @@ func (s *ExtensionManagerServer) Run() error {
 		for {
 			time.Sleep(s.pingInterval)
 
-			status, err := s.serverClient.Ping()
+			status, err := s.serverClient.Ping(context.Background())
 			if err != nil {
 				errc <- errors.Wrap(err, "extension ping failed")
 				break
@@ -212,7 +213,19 @@ func (s *ExtensionManagerServer) Run() error {
 
 // Ping implements the basic health check.
 func (s *ExtensionManagerServer) Ping(ctx context.Context) (*osquery.ExtensionStatus, error) {
+	for _, registry := range s.registry {
+		for _, plugin := range registry {
+			resp := plugin.Ping(ctx)
+			if resp.Code != 0 {
+				return &resp, nil
+			}
+		}
+	}
 	return &osquery.ExtensionStatus{Code: 0, Message: "OK"}, nil
+}
+
+func (s *ExtensionManagerServer) Client() osquery.ExtensionManager {
+	return s.serverClient
 }
 
 // Call routes a call from the osquery process to the appropriate registered
