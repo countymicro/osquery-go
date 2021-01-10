@@ -82,7 +82,7 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 	return osquery.ExtensionPluginResponse{}
 }
 
-func (t *Plugin) Ping() osquery.ExtensionStatus {
+func (t *Plugin) Ping(ctx context.Context) osquery.ExtensionStatus {
 	return osquery.ExtensionStatus{Code: 0, Message: "OK"}
 }
 
@@ -215,76 +215,40 @@ func convertRows(rows []interface{}) ([]map[string]string, error) {
 	return results, nil
 }
 
-func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
 	switch request[requestActionKey] {
 	case getQueriesAction:
 		queries, err := t.getQueries(ctx)
 		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "error getting queries: " + err.Error(),
-				},
-			}
+			return nil, fmt.Errorf("error getting queries: %w", err)
 		}
 
 		queryJSON, err := json.Marshal(queries)
 		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "error marshalling queries: " + err.Error(),
-				},
-			}
+			return nil, fmt.Errorf("error marshalling queries: %w", err)
 		}
 
-		return osquery.ExtensionResponse{
-			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-			Response: osquery.ExtensionPluginResponse{map[string]string{"results": string(queryJSON)}},
-		}
+		return osquery.ExtensionPluginResponse{map[string]string{"results": string(queryJSON)}}, nil
 
 	case writeResultsAction:
 		var rs ResultsStruct
 		if err := json.Unmarshal([]byte(request[requestResultKey]), &rs); err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "error unmarshalling results: " + err.Error(),
-				},
-			}
+			return nil, fmt.Errorf("error unmarshalling results: %w", err)
 		}
 		results, err := rs.toResults()
 		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "error writing results: " + err.Error(),
-				},
-			}
+			return nil, fmt.Errorf("error writing results: %w", err)
 		}
 		// invoke callback
 		err = t.writeResults(ctx, results)
 		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "error writing results: " + err.Error(),
-				},
-			}
+			return nil, fmt.Errorf("error writing results: %w", err)
 		}
 
-		return osquery.ExtensionResponse{
-			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-			Response: osquery.ExtensionPluginResponse{},
-		}
+		return nil, nil
 
 	default:
-		return osquery.ExtensionResponse{
-			Status: &osquery.ExtensionStatus{
-				Code:    1,
-				Message: "unknown action: " + request["action"],
-			},
-		}
+		return nil, fmt.Errorf("unknown action: %s", request["action"])
 	}
 
 }

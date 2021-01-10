@@ -139,89 +139,57 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 	return routes
 }
 
-func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (response osquery.ExtensionResponse) {
+func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (response osquery.ExtensionPluginResponse, err error) {
 	fmt.Println("Got request", request)
 	defer func() {
 		fmt.Println("Returning response", response)
 		fmt.Println()
 	}()
-	ok := osquery.ExtensionStatus{Code: 0, Message: "OK"}
+
 	switch request["action"] {
 	case "generate":
 		resp, err := t.generateRows(ctx, request)
 		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: err.Error(),
-				},
-			}
+			return nil, err
 		}
-		return osquery.ExtensionResponse{
-			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-			Response: resp,
-		}
+		return resp, nil
 
 	case "insert":
 		resp, err := t.insertRow(ctx, request)
 		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: err.Error(),
+			return osquery.ExtensionPluginResponse{
+				map[string]string{
+					"status":  "failure", // TODO: support the special "readonly" and "constraint" errors here
+					"message": err.Error(),
 				},
-				Response: osquery.ExtensionPluginResponse{
-					map[string]string{
-						"status":  "failure", // TODO: support the special "readonly" and "constraint" errors here
-						"message": err.Error(),
-					},
-				},
-			}
+			}, err
 		}
-		return osquery.ExtensionResponse{
-			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-			Response: resp,
-		}
+
+		return resp, nil
 
 	case "update":
 		resp, err := t.updateRow(ctx, request)
 		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: err.Error(),
-				},
-				Response: osquery.ExtensionPluginResponse{
+			return osquery.ExtensionPluginResponse{
 					map[string]string{
 						"status":  "failure", // TODO: support the special "readonly" and "constraint" errors here
 						"message": err.Error(),
 					},
 				},
-			}
+				err
 		}
-		return osquery.ExtensionResponse{
-			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-			Response: resp,
-		}
+		return resp, nil
 
 	case "columns":
-		return osquery.ExtensionResponse{
-			Status:   &ok,
-			Response: t.Routes(),
-		}
+		return t.Routes(), nil
 
 	default:
-		return osquery.ExtensionResponse{
-			Status: &osquery.ExtensionStatus{
-				Code:    1,
-				Message: "unknown action: " + request["action"],
-			},
-		}
+		return nil, fmt.Errorf("unknown action: %s", request["action"])
 	}
 
 }
 
-func (t *Plugin) Ping() osquery.ExtensionStatus {
+func (t *Plugin) Ping(ctx context.Context) osquery.ExtensionStatus {
 	return osquery.ExtensionStatus{Code: 0, Message: "OK"}
 }
 

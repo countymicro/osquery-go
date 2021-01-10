@@ -41,7 +41,7 @@ func TestTablePlugin(t *testing.T) {
 	// Basic methods
 	assert.Equal(t, "table", plugin.RegistryName())
 	assert.Equal(t, "mock", plugin.Name())
-	assert.Equal(t, StatusOK, plugin.Ping())
+	assert.Equal(t, StatusOK, plugin.Ping(context.Background()))
 	assert.Equal(t, osquery.ExtensionPluginResponse{
 		{"id": "column", "name": "text", "type": "TEXT", "op": "0"},
 		{"id": "column", "name": "integer", "type": "INTEGER", "op": "0"},
@@ -50,19 +50,19 @@ func TestTablePlugin(t *testing.T) {
 	}, plugin.Routes())
 
 	// Call explicit columns action
-	resp := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "columns"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	resp, err := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "columns"})
+	assert.NoError(t, err)
 	assert.Equal(t, osquery.ExtensionPluginResponse{
 		{"id": "column", "name": "text", "type": "TEXT", "op": "0"},
 		{"id": "column", "name": "integer", "type": "INTEGER", "op": "0"},
 		{"id": "column", "name": "big_int", "type": "BIGINT", "op": "0"},
 		{"id": "column", "name": "double", "type": "DOUBLE", "op": "0"},
-	}, resp.Response)
+	}, resp)
 
 	// Call with good action and context
-	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "generate", "context": "{}"})
+	resp, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "generate", "context": "{}"})
 	assert.Equal(t, QueryContext{map[string]ConstraintList{}}, calledQueryCtx)
-	assert.Equal(t, &StatusOK, resp.Status)
+	assert.NoError(t, err)
 	assert.Equal(t, osquery.ExtensionPluginResponse{
 		{
 			"text":    "hello world",
@@ -70,7 +70,7 @@ func TestTablePlugin(t *testing.T) {
 			"big_int": "-1234567890",
 			"double":  "3.14159",
 		},
-	}, resp.Response)
+	}, resp)
 }
 
 func TestTablePluginErrors(t *testing.T) {
@@ -86,20 +86,23 @@ func TestTablePluginErrors(t *testing.T) {
 	require.NoError(t, err)
 
 	// Call with bad actions
-	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{}).Status.Code)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{})
+	assert.Error(t, err)
 	assert.False(t, called)
-	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "bad"}).Status.Code)
-	assert.False(t, called)
-
-	// Call with good action but generate fails
-	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "generate", "context": "{[]}"}).Status.Code)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "bad"})
+	assert.Error(t, err)
 	assert.False(t, called)
 
 	// Call with good action but generate fails
-	resp := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "generate", "context": "{}"})
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "generate", "context": "{[]}"})
+	assert.Error(t, err)
+	assert.False(t, called)
+
+	// Call with good action but generate fails
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "generate", "context": "{}"})
 	assert.True(t, called)
-	assert.Equal(t, int32(1), resp.Status.Code)
-	assert.Equal(t, "error generating table: foobar", resp.Status.Message)
+	assert.Error(t, err)
+	assert.Equal(t, "error generating table: foobar", err.Error())
 
 }
 

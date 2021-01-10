@@ -28,7 +28,7 @@ type OsqueryPlugin interface {
 	Ping(ctx context.Context) osquery.ExtensionStatus
 	// Call requests the plugin to perform its defined behavior, returning
 	// a response containing the result.
-	Call(context.Context, osquery.ExtensionPluginRequest) osquery.ExtensionResponse
+	Call(context.Context, osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error)
 	// Shutdown alerts the plugin to stop.
 	Shutdown()
 }
@@ -157,7 +157,7 @@ func (s *ExtensionManagerServer) Start() error {
 
 		listenPath := fmt.Sprintf("%s.%d", s.sockPath, stat.UUID)
 
-		processor := osquery.NewExtensionProcessor(s)
+		processor := osquery.NewExtensionProcessor(ErrWrap{s})
 
 		s.transport, err = transport.OpenServer(listenPath, s.timeout)
 		if err != nil {
@@ -177,6 +177,30 @@ func (s *ExtensionManagerServer) Start() error {
 	}
 
 	return server.Serve()
+}
+
+type ErrWrap struct {
+	*ExtensionManagerServer
+}
+
+func (e ErrWrap) Call(ctx context.Context, registry string, item string, request osquery.ExtensionPluginRequest) (r *osquery.ExtensionResponse, err error) {
+	resp, err := e.ExtensionManagerServer.Call(ctx, registry, item, request)
+	if err != nil {
+		return &osquery.ExtensionResponse{
+			Status: &osquery.ExtensionStatus{
+				Code:    1,
+				Message: err.Error(),
+			},
+			Response: resp,
+		}, nil
+	}
+	return &osquery.ExtensionResponse{
+		Status: &osquery.ExtensionStatus{
+			Code:    0,
+			Message: "OK",
+		},
+		Response: resp,
+	}, nil
 }
 
 // Run starts the extension manager and runs until osquery calls for a shutdown
@@ -230,29 +254,18 @@ func (s *ExtensionManagerServer) Client() osquery.ExtensionManager {
 
 // Call routes a call from the osquery process to the appropriate registered
 // plugin.
-func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item string, request osquery.ExtensionPluginRequest) (*osquery.ExtensionResponse, error) {
+func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item string, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
 	subreg, ok := s.registry[registry]
 	if !ok {
-		return &osquery.ExtensionResponse{
-			Status: &osquery.ExtensionStatus{
-				Code:    1,
-				Message: "Unknown registry: " + registry,
-			},
-		}, nil
+		return nil, fmt.Errorf("Unknown registry: %s", registry)
 	}
 
 	plugin, ok := subreg[item]
 	if !ok {
-		return &osquery.ExtensionResponse{
-			Status: &osquery.ExtensionStatus{
-				Code:    1,
-				Message: "Unknown registry item: " + item,
-			},
-		}, nil
+		return nil, fmt.Errorf("Unknown registry item: %s", registry)
 	}
 
-	response := plugin.Call(context.Background(), request)
-	return &response, nil
+	return plugin.Call(context.Background(), request)
 }
 
 // Shutdown stops the server and closes the listening socket.

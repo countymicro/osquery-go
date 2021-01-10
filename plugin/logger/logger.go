@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/kolide/osquery-go/gen/osquery"
 )
@@ -45,11 +46,11 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 	return []map[string]string{}
 }
 
-func (t *Plugin) Ping() osquery.ExtensionStatus {
+func (t *Plugin) Ping(ctx context.Context) osquery.ExtensionStatus {
 	return osquery.ExtensionStatus{Code: 0, Message: "OK"}
 }
 
-func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
 	var err error
 	if log, ok := request["string"]; ok {
 		err = t.logFn(ctx, LogTypeString, log)
@@ -62,12 +63,7 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 	} else if _, ok := request["status"]; ok {
 		statusJSON := []byte(request["log"])
 		if len(statusJSON) == 0 {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "got empty status",
-				},
-			}
+			return nil, fmt.Errorf("got empty status")
 		}
 
 		// Dirty hack because osquery gives us malformed JSON.
@@ -77,39 +73,21 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 
 		var parsedStatuses []json.RawMessage
 		if err := json.Unmarshal(statusJSON, &parsedStatuses); err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "error parsing status logs: " + err.Error(),
-				},
-			}
+			return nil, fmt.Errorf("error parsing status logs: %w", err)
 		}
 
 		for _, s := range parsedStatuses {
 			err = t.logFn(ctx, LogTypeStatus, string(s))
 		}
 	} else {
-		return osquery.ExtensionResponse{
-			Status: &osquery.ExtensionStatus{
-				Code:    1,
-				Message: "unknown log request",
-			},
-		}
+		return nil, fmt.Errorf("unknown log request")
 	}
 
 	if err != nil {
-		return osquery.ExtensionResponse{
-			Status: &osquery.ExtensionStatus{
-				Code:    1,
-				Message: "error logging: " + err.Error(),
-			},
-		}
+		return nil, fmt.Errorf("error logging: %w", err)
 	}
 
-	return osquery.ExtensionResponse{
-		Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-		Response: osquery.ExtensionPluginResponse{},
-	}
+	return nil, nil
 }
 
 func (t *Plugin) Shutdown() {}

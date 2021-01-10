@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -30,7 +31,7 @@ name.
 	}
 	defer client.Close()
 
-	resp, err := client.Call(registryName, pluginName, map[string]string{"action": action})
+	resp, err := client.Call(context.Background(), registryName, pluginName, map[string]string{"action": action})
 	if err != nil {
 		fmt.Println("Error communicating with osqueryd: " + err.Error())
 		os.Exit(1)

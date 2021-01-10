@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
+	"github.com/kolide/osquery-go/mock"
 
 	"github.com/kolide/osquery-go/gen/osquery"
 	"github.com/kolide/osquery-go/plugin/logger"
@@ -27,13 +28,13 @@ func TestNoDeadlockOnError(t *testing.T) {
 		registry[reg] = make(map[string]OsqueryPlugin)
 	}
 	mut := sync.Mutex{}
-	mock := &MockExtensionManager{
-		RegisterExtensionFunc: func(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	mock := &mock.ExtensionManager{
+		RegisterExtensionFunc: func(ctx context.Context, info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
 			mut.Lock()
 			defer mut.Unlock()
 			return nil, errors.New("boom!")
 		},
-		PingFunc: func() (*osquery.ExtensionStatus, error) {
+		PingFunc: func(ctx context.Context) (*osquery.ExtensionStatus, error) {
 			return &osquery.ExtensionStatus{}, nil
 		},
 	}
@@ -62,11 +63,11 @@ func TestShutdownWhenPingFails(t *testing.T) {
 	for reg, _ := range validRegistryNames {
 		registry[reg] = make(map[string]OsqueryPlugin)
 	}
-	mock := &MockExtensionManager{
-		RegisterExtensionFunc: func(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	mock := &mock.ExtensionManager{
+		RegisterExtensionFunc: func(ctx context.Context, info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
 			return &osquery.ExtensionStatus{}, nil
 		},
-		PingFunc: func() (*osquery.ExtensionStatus, error) {
+		PingFunc: func(ctx context.Context) (*osquery.ExtensionStatus, error) {
 			// As if the socket was closed
 			return nil, syscall.EPIPE
 		},
@@ -100,8 +101,8 @@ func testShutdownDeadlock(t *testing.T) {
 	defer os.Remove(tempPath.Name())
 
 	retUUID := osquery.ExtensionRouteUUID(0)
-	mock := &MockExtensionManager{
-		RegisterExtensionFunc: func(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	mock := &mock.ExtensionManager{
+		RegisterExtensionFunc: func(ctx context.Context, info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
 			return &osquery.ExtensionStatus{Code: 0, UUID: retUUID}, nil
 		},
 	}
@@ -168,8 +169,8 @@ func TestShutdownBasic(t *testing.T) {
 	defer os.Remove(tempPath.Name())
 
 	retUUID := osquery.ExtensionRouteUUID(0)
-	mock := &MockExtensionManager{
-		RegisterExtensionFunc: func(info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
+	mock := &mock.ExtensionManager{
+		RegisterExtensionFunc: func(ctx context.Context, info *osquery.InternalExtensionInfo, registry osquery.ExtensionRegistry) (*osquery.ExtensionStatus, error) {
 			return &osquery.ExtensionStatus{Code: 0, UUID: retUUID}, nil
 		},
 	}

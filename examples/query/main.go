@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -24,7 +25,7 @@ Requests osqueryd to run the provided query and prints the results.
 	}
 	defer client.Close()
 
-	resp, err := client.Query(os.Args[2])
+	resp, err := client.Query(context.Background(), os.Args[2])
 	if err != nil {
 		fmt.Println("Error communicating with osqueryd: " + err.Error())
 		os.Exit(1)

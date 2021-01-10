@@ -23,14 +23,14 @@ func TestConfigPlugin(t *testing.T) {
 	// Basic methods
 	assert.Equal(t, "config", plugin.RegistryName())
 	assert.Equal(t, "mock", plugin.Name())
-	assert.Equal(t, StatusOK, plugin.Ping())
+	assert.Equal(t, StatusOK, plugin.Ping(context.Background()))
 	assert.Equal(t, osquery.ExtensionPluginResponse{}, plugin.Routes())
 
 	// Call with good action
-	resp := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "genConfig"})
+	resp, err := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "genConfig"})
 	assert.True(t, called)
-	assert.Equal(t, &StatusOK, resp.Status)
-	assert.Equal(t, osquery.ExtensionPluginResponse{{"conf1": "foobar"}}, resp.Response)
+	assert.NoError(t, err)
+	assert.Equal(t, osquery.ExtensionPluginResponse{{"conf1": "foobar"}}, resp)
 }
 
 func TestConfigPluginErrors(t *testing.T) {
@@ -41,14 +41,16 @@ func TestConfigPluginErrors(t *testing.T) {
 	})
 
 	// Call with bad actions
-	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{}).Status.Code)
+	_, err := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{})
+	assert.Error(t, err)
 	assert.False(t, called)
-	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "bad"}).Status.Code)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "bad"})
+	assert.Error(t, err)
 	assert.False(t, called)
 
 	// Call with good action but generate fails
-	resp := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "genConfig"})
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "genConfig"})
 	assert.True(t, called)
-	assert.Equal(t, int32(1), resp.Status.Code)
-	assert.Equal(t, "error getting config: foobar", resp.Status.Message)
+	assert.Error(t, err)
+	assert.Equal(t, "error getting config: foobar", err.Error())
 }

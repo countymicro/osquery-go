@@ -5,6 +5,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kolide/osquery-go/gen/osquery"
 )
@@ -44,7 +45,7 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 	return osquery.ExtensionPluginResponse{}
 }
 
-func (t *Plugin) Ping() osquery.ExtensionStatus {
+func (t *Plugin) Ping(ctx context.Context) osquery.ExtensionStatus {
 	return osquery.ExtensionStatus{Code: 0, Message: "OK"}
 }
 
@@ -54,31 +55,19 @@ const requestActionKey = "action"
 // Action value used when config is requested
 const genConfigAction = "genConfig"
 
-func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) osquery.ExtensionResponse {
+func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
 	switch request[requestActionKey] {
 	case genConfigAction:
 		configs, err := t.generate(ctx)
 		if err != nil {
-			return osquery.ExtensionResponse{
-				Status: &osquery.ExtensionStatus{
-					Code:    1,
-					Message: "error getting config: " + err.Error(),
-				},
-			}
+			return nil, fmt.Errorf("error getting config: %w", err)
 		}
 
-		return osquery.ExtensionResponse{
-			Status:   &osquery.ExtensionStatus{Code: 0, Message: "OK"},
-			Response: osquery.ExtensionPluginResponse{configs},
-		}
+		return osquery.ExtensionPluginResponse{configs}, nil
 
 	default:
-		return osquery.ExtensionResponse{
-			Status: &osquery.ExtensionStatus{
-				Code:    1,
-				Message: "unknown action: " + request["action"],
-			},
-		}
+		return nil, fmt.Errorf("unknown action: %s", request["action"])
+
 	}
 
 }

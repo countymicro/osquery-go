@@ -35,36 +35,36 @@ func TestLoggerPlugin(t *testing.T) {
 	// Basic methods
 	assert.Equal(t, "logger", plugin.RegistryName())
 	assert.Equal(t, "mock", plugin.Name())
-	assert.Equal(t, StatusOK, plugin.Ping())
+	assert.Equal(t, StatusOK, plugin.Ping(context.Background()))
 	assert.Equal(t, osquery.ExtensionPluginResponse{}, plugin.Routes())
 
 	// Log string
-	resp := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"string": "logged string"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	_, err := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"string": "logged string"})
+	assert.NoError(t, err)
 	assert.Equal(t, LogTypeString, calledType)
 	assert.Equal(t, "logged string", calledLog)
 
 	// Log snapshot
-	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"snapshot": "logged snapshot"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"snapshot": "logged snapshot"})
+	assert.NoError(t, err)
 	assert.Equal(t, LogTypeSnapshot, calledType)
 	assert.Equal(t, "logged snapshot", calledLog)
 
 	// Log health
-	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"health": "logged health"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"health": "logged health"})
+	assert.NoError(t, err)
 	assert.Equal(t, LogTypeHealth, calledType)
 	assert.Equal(t, "logged health", calledLog)
 
 	// Log init
-	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"init": "logged init"})
-	assert.Equal(t, &StatusOK, resp.Status)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"init": "logged init"})
+	assert.NoError(t, err)
 	assert.Equal(t, LogTypeInit, calledType)
 	assert.Equal(t, "logged init", calledLog)
 
 	// Log status
-	resp = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"status": "true", "log": `{"":{"s":"0","f":"events.cpp","i":"828","m":"Event publisher failed setup: kernel: Cannot access \/dev\/osquery"},"":{"s":"0","f":"events.cpp","i":"828","m":"Event publisher failed setup: scnetwork: Publisher not used"},"":{"s":"0","f":"scheduler.cpp","i":"74","m":"Executing scheduled query macos_kextstat: SELECT * FROM time"}}`})
-	assert.Equal(t, &StatusOK, resp.Status)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"status": "true", "log": `{"":{"s":"0","f":"events.cpp","i":"828","m":"Event publisher failed setup: kernel: Cannot access \/dev\/osquery"},"":{"s":"0","f":"events.cpp","i":"828","m":"Event publisher failed setup: scnetwork: Publisher not used"},"":{"s":"0","f":"scheduler.cpp","i":"74","m":"Executing scheduled query macos_kextstat: SELECT * FROM time"}}`})
+	assert.NoError(t, err)
 	assert.Equal(t, LogTypeStatus, calledType)
 	assert.Equal(t, `{"s":"0","f":"scheduler.cpp","i":"74","m":"Executing scheduled query macos_kextstat: SELECT * FROM time"}`, calledLog)
 }
@@ -77,18 +77,21 @@ func TestLogPluginErrors(t *testing.T) {
 	})
 
 	// Call with bad actions
-	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{}).Status.Code)
+	_, err := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{})
+	assert.Error(t, err)
 	assert.False(t, called)
-	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "bad"}).Status.Code)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "bad"})
+	assert.Error(t, err)
 	assert.False(t, called)
 
 	// Call with empty status
-	assert.Equal(t, int32(1), plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"status": "true", "log": ""}).Status.Code)
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"status": "true", "log": ""})
+	assert.Error(t, err)
 	assert.False(t, called)
 
 	// Call with good action but logging fails
-	resp := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"string": "logged string"})
+	_, err = plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"string": "logged string"})
 	assert.True(t, called)
-	assert.Equal(t, int32(1), resp.Status.Code)
-	assert.Equal(t, "error logging: foobar", resp.Status.Message)
+	assert.Error(t, err)
+	assert.Equal(t, "error logging: foobar", err.Error())
 }
