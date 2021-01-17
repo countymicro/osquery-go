@@ -46,25 +46,23 @@ func main() {
 	}
 }
 
-func GenerateConfigs(ctx context.Context) (map[string]string, error) {
-	return map[string]string{
-		"config1": `
-{
-  "options": {
-    "host_identifier": "hostname",
-    "schedule_splay_percent": 10
-  },
-  "schedule": {
-    "macos_kextstat": {
-      "query": "SELECT * FROM kernel_extensions;",
-      "interval": 10
-    },
-    "foobar": {
-      "query": "SELECT foo, bar, pid FROM foobar_table;",
-      "interval": 600
-    }
-  }
-}
-`,
+func GenerateConfigs(ctx context.Context) (map[string]config.Config, error) {
+	return map[string]config.Config{
+		"config1": {
+			Options: map[string]interface{}{
+				"host_identifier":        "hostname",
+				"schedule_splay_percent": 10,
+			},
+			Schedule: map[string]config.Query{
+				"macos_kextstat": {
+					Query:    "SELECT * from kernel_extensions;",
+					Interval: 10,
+				},
+				"foobar": {
+					Query:    "SELECT foo, bar, pid FROM foobar_table;",
+					Interval: 600,
+				},
+			},
+		},
 	}, nil
 }

@@ -248,10 +248,6 @@ func (s *ExtensionManagerServer) Ping(ctx context.Context) (*osquery.ExtensionSt
 	return &osquery.ExtensionStatus{Code: 0, Message: "OK"}, nil
 }
 
-func (s *ExtensionManagerServer) Client() osquery.ExtensionManager {
-	return s.serverClient
-}
-
 // Call routes a call from the osquery process to the appropriate registered
 // plugin.
 func (s *ExtensionManagerServer) Call(ctx context.Context, registry string, item string, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {

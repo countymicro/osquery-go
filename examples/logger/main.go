@@ -25,7 +25,7 @@ func main() {
 	}
 }
 
-func LogString(ctx context.Context, typ logger.LogType, logText string) error {
-	log.Printf("%s: %s\n", typ, logText)
+func LogString(ctx context.Context, l logger.Log) error {
+	log.Printf("%s: %s\n", l.Type(), l)
 	return nil
 }

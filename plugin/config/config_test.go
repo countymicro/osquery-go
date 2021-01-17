@@ -13,10 +13,12 @@ var StatusOK = osquery.ExtensionStatus{Code: 0, Message: "OK"}
 
 func TestConfigPlugin(t *testing.T) {
 	var called bool
-	plugin := NewPlugin("mock", func(context.Context) (map[string]string, error) {
+	plugin := NewPlugin("mock", func(context.Context) (map[string]Config, error) {
 		called = true
-		return map[string]string{
-			"conf1": "foobar",
+		return map[string]Config{
+			"conf1": {
+				Options: map[string]interface{}{"foo": "bar"},
+			},
 		}, nil
 	})
 
@@ -30,12 +32,12 @@ func TestConfigPlugin(t *testing.T) {
 	resp, err := plugin.Call(context.Background(), osquery.ExtensionPluginRequest{"action": "genConfig"})
 	assert.True(t, called)
 	assert.NoError(t, err)
-	assert.Equal(t, osquery.ExtensionPluginResponse{{"conf1": "foobar"}}, resp)
+	assert.Equal(t, osquery.ExtensionPluginResponse{{"conf1": `{"options":{"foo":"bar"}}`}}, resp)
 }
 
 func TestConfigPluginErrors(t *testing.T) {
 	var called bool
-	plugin := NewPlugin("mock", func(context.Context) (map[string]string, error) {
+	plugin := NewPlugin("mock", func(context.Context) (map[string]Config, error) {
 		called = true
 		return nil, errors.New("foobar")
 	})

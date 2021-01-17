@@ -43,8 +43,8 @@ func TestNoDeadlockOnError(t *testing.T) {
 		registry:     registry,
 	}
 
-	log := func(ctx context.Context, typ logger.LogType, logText string) error {
-		fmt.Printf("%s: %s\n", typ, logText)
+	log := func(ctx context.Context, log logger.Log) error {
+		fmt.Printf("%s: %s\n", log.Type(), log)
 		return nil
 	}
 	server.RegisterPlugin(logger.NewPlugin("testLogger", log))

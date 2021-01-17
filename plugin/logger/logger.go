@@ -4,9 +4,7 @@
 package logger
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/kolide/osquery-go/gen/osquery"
@@ -18,7 +16,7 @@ import (
 // argument can be optionally used to log differently depending on the
 // type of log received. The context argument can optionally be used
 // for cancellation in long-running operations.
-type LogFunc func(ctx context.Context, typ LogType, log string) error
+type LogFunc func(ctx context.Context, log Log) error
 
 // Plugin is an osquery logger plugin.
 // The Plugin struct implements the OsqueryPlugin interface.
@@ -51,38 +49,8 @@ func (t *Plugin) Ping(ctx context.Context) osquery.ExtensionStatus {
 }
 
 func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
-	var err error
-	if log, ok := request["string"]; ok {
-		err = t.logFn(ctx, LogTypeString, log)
-	} else if log, ok := request["snapshot"]; ok {
-		err = t.logFn(ctx, LogTypeSnapshot, log)
-	} else if log, ok := request["health"]; ok {
-		err = t.logFn(ctx, LogTypeHealth, log)
-	} else if log, ok := request["init"]; ok {
-		err = t.logFn(ctx, LogTypeInit, log)
-	} else if _, ok := request["status"]; ok {
-		statusJSON := []byte(request["log"])
-		if len(statusJSON) == 0 {
-			return nil, fmt.Errorf("got empty status")
-		}
-
-		// Dirty hack because osquery gives us malformed JSON.
-		statusJSON = bytes.Replace(statusJSON, []byte(`"":`), []byte(``), -1)
-		statusJSON[0] = '['
-		statusJSON[len(statusJSON)-1] = ']'
-
-		var parsedStatuses []json.RawMessage
-		if err := json.Unmarshal(statusJSON, &parsedStatuses); err != nil {
-			return nil, fmt.Errorf("error parsing status logs: %w", err)
-		}
-
-		for _, s := range parsedStatuses {
-			err = t.logFn(ctx, LogTypeStatus, string(s))
-		}
-	} else {
-		return nil, fmt.Errorf("unknown log request")
-	}
-
+	log := RequestToLog(request)
+	err := t.logFn(ctx, log)
 	if err != nil {
 		return nil, fmt.Errorf("error logging: %w", err)
 	}
@@ -93,32 +61,32 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 func (t *Plugin) Shutdown() {}
 
 //LogType encodes the type of log osquery is outputting.
-type LogType int
-
-const (
-	LogTypeString LogType = iota
-	LogTypeSnapshot
-	LogTypeHealth
-	LogTypeInit
-	LogTypeStatus
-)
-
-// String implements the fmt.Stringer interface for LogType.
-func (l LogType) String() string {
-	var typeString string
-	switch l {
-	case LogTypeString:
-		typeString = "string"
-	case LogTypeSnapshot:
-		typeString = "snapshot"
-	case LogTypeHealth:
-		typeString = "health"
-	case LogTypeInit:
-		typeString = "init"
-	case LogTypeStatus:
-		typeString = "status"
-	default:
-		typeString = "unknown"
-	}
-	return typeString
-}
+//type LogType int
+//
+//const (
+//	LogTypeString LogType = iota
+//	LogTypeSnapshot
+//	LogTypeHealth
+//	LogTypeInit
+//	LogTypeStatus
+//)
+//
+//// String implements the fmt.Stringer interface for LogType.
+//func (l LogType) String() string {
+//	var typeString string
+//	switch l {
+//	case LogTypeString:
+//		typeString = "string"
+//	case LogTypeSnapshot:
+//		typeString = "snapshot"
+//	case LogTypeHealth:
+//		typeString = "health"
+//	case LogTypeInit:
+//		typeString = "init"
+//	case LogTypeStatus:
+//		typeString = "status"
+//	default:
+//		typeString = "unknown"
+//	}
+//	return typeString
+//}

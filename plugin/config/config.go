@@ -5,6 +5,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/kolide/osquery-go/gen/osquery"
@@ -14,7 +15,36 @@ import (
 // The returned map should use the source name as key, and the config
 // JSON as values. The context argument can optionally be used for
 // cancellation in long-running operations.
-type GenerateConfigsFunc func(ctx context.Context) (map[string]string, error)
+type GenerateConfigsFunc func(ctx context.Context) (map[string]Config, error)
+
+type Config struct {
+	Options               map[string]interface{}           `json:"options,omitempty"`
+	Schedule              map[string]Query                 `json:"schedule,omitempty"`
+	Packs                 map[string]Pack                  `json:"packs,omitempty"`
+	AutoTableConstruction map[string]AutoTableConstruction `json:"auto_table_construction,omitempty"`
+	Decorators            *struct {
+		Always []string `json:"always,omitempty"`
+		Load   []string `json:"load,omitempty"`
+	} `json:"decorators,omitempty"`
+}
+
+type Query struct {
+	Query    string `json:"query"`
+	Interval int    `json:"interval"`
+	Snapshot bool   `json:"snapshot,omitempty"`
+	// TODO: IncludeRemoved bool   `json:"removed,omitempty"`
+}
+
+type Pack struct {
+	Queries map[string]Query `json:"queries"`
+}
+
+type AutoTableConstruction struct {
+	Columns  []string `json:"columns"`
+	Path     string   `json:"path"`
+	Platform string   `json:"platform"`
+	Query    string   `json:"query"`
+}
 
 // Plugin is an osquery configuration plugin. Plugin implements the OsqueryPlugin
 // interface.
@@ -63,7 +93,13 @@ func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginReques
 			return nil, fmt.Errorf("error getting config: %w", err)
 		}
 
-		return osquery.ExtensionPluginResponse{configs}, nil
+		resp := map[string]string{}
+		for source, config := range configs {
+			c, _ := json.Marshal(config)
+			resp[source] = string(c)
+		}
+
+		return osquery.ExtensionPluginResponse{resp}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown action: %s", request["action"])
