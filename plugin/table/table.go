@@ -139,13 +139,7 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 	return routes
 }
 
-func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (response osquery.ExtensionPluginResponse, err error) {
-	fmt.Println("Got request", request)
-	defer func() {
-		fmt.Println("Returning response", response)
-		fmt.Println()
-	}()
-
+func (t *Plugin) Call(ctx context.Context, request osquery.ExtensionPluginRequest) (osquery.ExtensionPluginResponse, error) {
 	switch request["action"] {
 	case "generate":
 		resp, err := t.generateRows(ctx, request)
