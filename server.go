@@ -47,7 +47,7 @@ type ExtensionManagerServer struct {
 	server       thrift.TServer
 	transport    thrift.TServerTransport
 	timeout      time.Duration
-	pingInterval time.Duration // How often to ping osquery server
+	lastPing     time.Time
 	mutex        sync.Mutex
 	started      bool // Used to ensure tests wait until the server is actually started
 }
@@ -69,12 +69,6 @@ func ServerTimeout(timeout time.Duration) ServerOption {
 	}
 }
 
-func ServerPingInterval(interval time.Duration) ServerOption {
-	return func(s *ExtensionManagerServer) {
-		s.pingInterval = interval
-	}
-}
-
 // NewExtensionManagerServer creates a new extension management server
 // communicating with osquery over the socket at the provided path. If
 // resolving the address or connecting to the socket fails, this function will
@@ -87,11 +81,11 @@ func NewExtensionManagerServer(name string, sockPath string, opts ...ServerOptio
 	}
 
 	manager := &ExtensionManagerServer{
-		name:         name,
-		sockPath:     sockPath,
-		registry:     registry,
-		timeout:      defaultTimeout,
-		pingInterval: defaultPingInterval,
+		name:     name,
+		sockPath: sockPath,
+		registry: registry,
+		timeout:  defaultTimeout,
+		lastPing: time.Now(),
 	}
 
 	for _, opt := range opts {
@@ -213,30 +207,29 @@ func (s *ExtensionManagerServer) Run() error {
 
 	// Watch for the osquery process going away. If so, initiate shutdown.
 	go func() {
-		for {
-			time.Sleep(s.pingInterval)
-
-			status, err := s.serverClient.Ping(context.Background())
-			if err != nil {
-				errc <- errors.Wrap(err, "extension ping failed")
-				break
-			}
-			if status.Code != 0 {
-				errc <- errors.Errorf("ping returned status %d", status.Code)
+		for range time.Tick(time.Second) {
+			s.mutex.Lock()
+			sinceLastPing := time.Now().Sub(s.lastPing)
+			s.mutex.Unlock()
+			if sinceLastPing > 10*time.Second {
+				errc <- fmt.Errorf("no server ping for over 10 seconds")
 				break
 			}
 		}
 	}()
 
 	err := <-errc
-	if err := s.Shutdown(context.Background()); err != nil {
-		return err
+	if shutdownErr := s.Shutdown(context.Background()); shutdownErr != nil {
+		return shutdownErr
 	}
 	return err
 }
 
 // Ping implements the basic health check.
 func (s *ExtensionManagerServer) Ping(ctx context.Context) (*osquery.ExtensionStatus, error) {
+	s.mutex.Lock()
+	s.lastPing = time.Now()
+	s.mutex.Unlock()
 	for _, registry := range s.registry {
 		for _, plugin := range registry {
 			resp := plugin.Ping(ctx)
