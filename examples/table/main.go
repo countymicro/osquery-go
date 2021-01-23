@@ -8,8 +8,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/kolide/osquery-go"
-	"github.com/kolide/osquery-go/plugin/table"
+	"github.com/bradleyjkemp/osquery-go"
+	"github.com/bradleyjkemp/osquery-go/plugin/table"
 )
 
 var (

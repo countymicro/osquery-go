@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kolide/osquery-go/gen/osquery"
+	"github.com/bradleyjkemp/osquery-go/gen/osquery"
 )
 
 // LogFunc is the logger function used by an osquery Logger plugin.

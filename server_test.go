@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	"github.com/kolide/osquery-go/mock"
+	"github.com/bradleyjkemp/osquery-go/mock"
 
-	"github.com/kolide/osquery-go/gen/osquery"
-	"github.com/kolide/osquery-go/plugin/logger"
+	"github.com/bradleyjkemp/osquery-go/gen/osquery"
+	"github.com/bradleyjkemp/osquery-go/plugin/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

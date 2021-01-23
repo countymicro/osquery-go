@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/kolide/osquery-go/gen/osquery"
-	"github.com/kolide/osquery-go/transport"
+	"github.com/bradleyjkemp/osquery-go/gen/osquery"
+	"github.com/bradleyjkemp/osquery-go/transport"
 	"github.com/pkg/errors"
 
 	"github.com/apache/thrift/lib/go/thrift"

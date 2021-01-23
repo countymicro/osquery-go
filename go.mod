@@ -1,4 +1,4 @@
-module github.com/kolide/osquery-go
+module github.com/bradleyjkemp/osquery-go
 
 require (
 	github.com/Microsoft/go-winio v0.4.9

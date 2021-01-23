@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/kolide/osquery-go"
+	"github.com/bradleyjkemp/osquery-go"
 )
 
 func main() {

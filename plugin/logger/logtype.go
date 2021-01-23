@@ -3,7 +3,7 @@ package logger
 import (
 	"encoding/json"
 
-	"github.com/kolide/osquery-go/gen/osquery"
+	"github.com/bradleyjkemp/osquery-go/gen/osquery"
 )
 
 type LogType string

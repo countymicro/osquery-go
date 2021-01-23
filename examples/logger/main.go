@@ -5,8 +5,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/kolide/osquery-go"
-	"github.com/kolide/osquery-go/plugin/logger"
+	"github.com/bradleyjkemp/osquery-go"
+	"github.com/bradleyjkemp/osquery-go/plugin/logger"
 )
 
 func main() {
