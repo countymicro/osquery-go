@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/countymicro/osquery-go/gen/osquery"
 )
 
 // GetQueriesResult contains the information about which queries the

@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/osquery/osquery-go"
+	"github.com/countymicro/osquery-go"
 )
 
 func main() {

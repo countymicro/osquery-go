@@ -1,7 +1,7 @@
 # osquery-go
 
 [![CircleCI](https://circleci.com/gh/osquery/osquery-go/tree/master.svg?style=svg)](https://circleci.com/gh/osquery/osquery-go/tree/master)
-[![GoDoc](https://godoc.org/github.com/osquery/osquery-go?status.svg)](http://godoc.org/github.com/osquery/osquery-go)
+[![GoDoc](https://godoc.org/github.com/countymicro/osquery-go?status.svg)](http://godoc.org/github.com/countymicro/osquery-go)
 
 [osquery](https://github.com/facebook/osquery) exposes an operating system as a high-performance relational database. This allows you to write SQL-based queries to explore operating system data. With osquery, SQL tables represent abstract concepts such as running processes, loaded kernel modules, open network connections, browser plugins, hardware events or file hashes.
 
@@ -16,7 +16,7 @@ In osquery, SQL tables, configuration retrieval, log handling, etc. are implemen
 This library is compatible with Go Modules. To install:
 
 ``` go
-go get github.com/osquery/osquery-go
+go get github.com/countymicro/osquery-go
 ```
 
 ## Using the library
@@ -35,8 +35,8 @@ import (
 	"os"
 	"flag"
 
-	"github.com/osquery/osquery-go"
-	"github.com/osquery/osquery-go/plugin/table"
+	"github.com/countymicro/osquery-go"
+	"github.com/countymicro/osquery-go/plugin/table"
 )
 
 func main() {
@@ -189,7 +189,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/osquery/osquery-go"
+	"github.com/countymicro/osquery-go"
 )
 
 func main() {

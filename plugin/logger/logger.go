@@ -8,7 +8,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/countymicro/osquery-go/gen/osquery"
 )
 
 // LogFunc is the logger function used by an osquery Logger plugin.

@@ -2,7 +2,7 @@
 
 package osquery
 
-import "github.com/osquery/osquery-go/gen/osquery"
+import "github.com/countymicro/osquery-go/gen/osquery"
 
 var _ ExtensionManager = (*MockExtensionManager)(nil)
 

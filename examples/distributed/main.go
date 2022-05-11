@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/osquery/osquery-go"
-	"github.com/osquery/osquery-go/plugin/distributed"
+	"github.com/countymicro/osquery-go"
+	"github.com/countymicro/osquery-go/plugin/distributed"
 )
 
 func main() {

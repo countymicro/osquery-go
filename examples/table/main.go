@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/osquery/osquery-go"
-	"github.com/osquery/osquery-go/plugin/table"
+	"github.com/countymicro/osquery-go"
+	"github.com/countymicro/osquery-go/plugin/table"
 )
 
 var (

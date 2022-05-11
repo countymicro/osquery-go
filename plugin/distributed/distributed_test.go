@@ -9,7 +9,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/osquery/osquery-go/gen/osquery"
+	"github.com/countymicro/osquery-go/gen/osquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

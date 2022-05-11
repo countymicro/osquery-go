@@ -8,8 +8,8 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 
-	"github.com/osquery/osquery-go/gen/osquery"
-	"github.com/osquery/osquery-go/transport"
+	"github.com/countymicro/osquery-go/gen/osquery"
+	"github.com/countymicro/osquery-go/transport"
 	"github.com/pkg/errors"
 )
 
