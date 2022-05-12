@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/countymicro/osquery-go/gen/osquery"
+	"github.com/fatih/structtag"
 	"github.com/pkg/errors"
 )
 
@@ -58,15 +59,18 @@ func generateColumnDefinition(rowDefinition RowDefinition) ([]ColumnDefinition, 
 	for i := 0; i < row.Type().NumField(); i++ {
 		field := row.Type().Field(i)
 
-		fieldTag, fieldTagExists := field.Tag.Lookup("column")
-
-		if field.Type == reflect.TypeOf(RowID(0)) && !fieldTagExists {
+		tags, err := structtag.Parse(string(field.Tag))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse tag for field %s", field.Name)
+		}
+		fieldTag, _ := tags.Get("column")
+		if fieldTag == nil && field.Type == reflect.TypeOf(RowID(0)) {
 			continue
 		}
 
 		columnName := field.Name
-		if fieldTagExists {
-			columnName = strings.Split(fieldTag, ",")[0]
+		if fieldTag != nil {
+			columnName = fieldTag.Name
 		}
 
 		var columnType ColumnType
@@ -85,9 +89,26 @@ func generateColumnDefinition(rowDefinition RowDefinition) ([]ColumnDefinition, 
 			return nil, fmt.Errorf("field %s has unsupported type %s", field.Name, field.Type.Kind())
 		}
 
+		columnOptions := ColumnOptionDefault
+		for _, t := range fieldTag.Options {
+			switch t {
+			case "index":
+				columnOptions |= ColumnOptionIndex
+			case "required":
+				columnOptions |= ColumnOptionRequired
+			case "additional":
+				columnOptions |= ColumnOptionAdditional
+			case "optimized":
+				columnOptions |= ColumnOptionOptimized
+			case "hidden":
+				columnOptions |= ColumnOptionHidden
+			}
+		}
+
 		columns = append(columns, ColumnDefinition{
-			Name: columnName,
-			Type: columnType,
+			Name:    columnName,
+			Type:    columnType,
+			Options: columnOptions,
 		})
 	}
 	return columns, nil
@@ -133,7 +154,7 @@ func (t *Plugin) Routes() osquery.ExtensionPluginResponse {
 			"id":   "column",
 			"name": col.Name,
 			"type": string(col.Type),
-			"op":   "0",
+			"op":   strconv.FormatUint(uint64(col.Options), 10),
 		})
 	}
 	return routes
@@ -350,8 +371,9 @@ func parseRowValues(rowJSON string, definition RowDefinition) (RowDefinition, er
 // plugin. Both values are mandatory. Prefer using the *Column helpers to
 // create ColumnDefinition structs.
 type ColumnDefinition struct {
-	Name string
-	Type ColumnType
+	Name    string
+	Type    ColumnType
+	Options ColumnOptions
 }
 
 // ColumnType is a strongly typed representation of the data type string for a
@@ -360,10 +382,50 @@ type ColumnType string
 
 // The following column types are defined in osquery tables.h.
 const (
-	ColumnTypeText    ColumnType = "TEXT"
-	ColumnTypeInteger ColumnType = "INTEGER"
-	ColumnTypeBigInt  ColumnType = "BIGINT"
-	ColumnTypeDouble  ColumnType = "DOUBLE"
+	ColumnTypeText       ColumnType = "TEXT"
+	ColumnTypeInteger    ColumnType = "INTEGER"
+	ColumnTypeBigInt     ColumnType = "BIGINT"
+	ColumnUnsignedBigInt ColumnType = "UNSIGNED BIGINT"
+	ColumnTypeDouble     ColumnType = "DOUBLE"
+	ColumnTypeBlob       ColumnType = "BLOB"
+)
+
+// ColumnOptions is an enum of the osquery column options.
+type ColumnOptions uint8
+
+// The following operators are dfined in osquery tables.h.
+const (
+	// Default/no options.
+	ColumnOptionDefault ColumnOptions = 0
+	// Treat this column as a primary key.
+	ColumnOptionIndex ColumnOptions = 1
+	// This column MUST be included in the query predicate.
+	ColumnOptionRequired ColumnOptions = 2
+	/*
+		 	 * @brief This column is used to generate additional information.
+			 *
+			 * If this column is included in the query predicate, the table will generate
+			 * additional information. Consider the browser_plugins or shell history
+			 * tables: by default they list the plugins or history relative to the user
+			 * running the query. However, if the calling query specifies a UID explicitly
+			 * in the predicate, the meaning of the table changes and results for that
+			 * user are returned instead.
+	*/
+	ColumnOptionAdditional ColumnOptions = 4
+	/*
+		* @brief This column can be used to optimize the query.
+		*
+		* If this column is included in the query predicate, the table will generate
+		* optimized information. Consider the system_controls table, a default filter
+		* without a query predicate lists all of the keys. When a specific domain is
+		* included in the predicate then the table will only issue syscalls/lookups
+		* for that domain, greatly optimizing the time and utilization.
+		*
+		 * This optimization does not mean the column is an index.
+	*/
+	ColumnOptionOptimized ColumnOptions = 8
+	// This column should be hidden from '*'' selects.
+	ColumnOptionHidden ColumnOptions = 16
 )
 
 // QueryContext contains the constraints from the WHERE clause of the query,

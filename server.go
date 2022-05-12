@@ -129,7 +129,7 @@ func (s *ExtensionManagerServer) RegisterPlugin(plugins ...OsqueryPlugin) {
 
 func (s *ExtensionManagerServer) genRegistry() osquery.ExtensionRegistry {
 	registry := osquery.ExtensionRegistry{}
-	for regName, _ := range s.registry {
+	for regName := range s.registry {
 		registry[regName] = osquery.ExtensionRouteTable{}
 		for _, plugin := range s.registry[regName] {
 			registry[regName][plugin.Name()] = plugin.Routes()

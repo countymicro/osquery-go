@@ -16,7 +16,7 @@ type ExampleRow struct {
 	Text    string   `column:"text"`
 	Integer int      `column:"integer"`
 	BigInt  *big.Int `column:"big_int"`
-	Double  float64  `column:"double"`
+	Double  float64  `column:"double,index,hidden"`
 }
 
 func TestTablePlugin(t *testing.T) {
@@ -46,7 +46,7 @@ func TestTablePlugin(t *testing.T) {
 		{"id": "column", "name": "text", "type": "TEXT", "op": "0"},
 		{"id": "column", "name": "integer", "type": "INTEGER", "op": "0"},
 		{"id": "column", "name": "big_int", "type": "BIGINT", "op": "0"},
-		{"id": "column", "name": "double", "type": "DOUBLE", "op": "0"},
+		{"id": "column", "name": "double", "type": "DOUBLE", "op": "17"},
 	}, plugin.Routes())
 
 	// Call explicit columns action
@@ -56,7 +56,7 @@ func TestTablePlugin(t *testing.T) {
 		{"id": "column", "name": "text", "type": "TEXT", "op": "0"},
 		{"id": "column", "name": "integer", "type": "INTEGER", "op": "0"},
 		{"id": "column", "name": "big_int", "type": "BIGINT", "op": "0"},
-		{"id": "column", "name": "double", "type": "DOUBLE", "op": "0"},
+		{"id": "column", "name": "double", "type": "DOUBLE", "op": "17"},
 	}, resp.Response)
 
 	// Call with good action and context
