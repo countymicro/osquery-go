@@ -77,7 +77,13 @@ func generateColumnDefinition(rowDefinition RowDefinition) ([]ColumnDefinition, 
 		switch field.Type.Kind() {
 		case reflect.String:
 			columnType = ColumnTypeText
+		case reflect.Uint:
+			columnType = ColumnTypeInteger
 		case reflect.Int:
+			columnType = ColumnTypeInteger
+		case reflect.Int64:
+			columnType = ColumnTypeInteger
+		case reflect.Uint64:
 			columnType = ColumnTypeInteger
 		case reflect.Float64:
 			columnType = ColumnTypeDouble
