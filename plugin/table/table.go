@@ -25,7 +25,7 @@ type Plugin struct {
 
 type RowDefinition interface{}
 
-type RowID int
+type RowID int64
 
 type Option func(*Plugin)
 
